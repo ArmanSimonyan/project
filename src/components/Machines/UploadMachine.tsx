@@ -1,34 +1,23 @@
 import { createMachine } from 'xstate'
 
+interface IContext {}
+type TMachineEvents =
+    | { type: 'IDLE' }
+    | { type: 'UPLOADING' }
+    | { type: 'SUCCESS' }
+    | { type: 'CANCELED' }
+    | { type: 'FAILED' }
 
-interface IContext {
-}
-interface IStates {
-
-    states: {
-        IDLE: {},
-        UPLOADING: {},
-        SUCCESS: {},
-        FAILED: {},
-        CANCELED: {},
-    }
-}
-interface IMachineEvents {
-
-}
-
-const FileUploadMachine = createMachine({
+const FileUploadMachine = createMachine<IContext, TMachineEvents>({
     id: 'file',
     initial: 'IDLE',
-    context: {
-
-    },
+    context: {},
     states: {
         IDLE: {
             on: { UPLOADING: 'UPLOADING' },
         },
         UPLOADING: {
-            entry: "uploadFiles",
+            entry: 'uploadFiles',
             on: {
                 SUCCESS: 'SUCCESS',
                 CANCELED: 'CANCELED',
@@ -36,24 +25,21 @@ const FileUploadMachine = createMachine({
             },
         },
         SUCCESS: {
-            on: { IDLE: 'IDLE'},
+            on: { IDLE: 'IDLE' },
         },
         FAILED: {
             on: {
                 IDLE: 'IDLE',
-                UPLOADING: "UPLOADING"
+                UPLOADING: 'UPLOADING',
             },
         },
         CANCELED: {
             on: {
                 IDLE: 'IDLE',
-                UPLOADING: "UPLOADING"
-            }
+                UPLOADING: 'UPLOADING',
+            },
         },
-
     },
-
-}, )
-
+})
 
 export default FileUploadMachine

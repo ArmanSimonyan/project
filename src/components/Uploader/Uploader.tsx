@@ -8,7 +8,7 @@ import './style.scss'
 
 export const Uploader = () => {
     const fileInput: any = useRef(null)
-    const uploadPromise= useRef<IPromiseResponse>(null)
+    const uploadPromise = useRef<IPromiseResponse | null>(null)
     const [progressLineValue, setProgressLineValue] = useState(0)
     const [machineState, sendToStateMachine] = useMachine(FileUploadMachine, {
         actions: {
@@ -18,12 +18,12 @@ export const Uploader = () => {
                 for (const key of Object.keys(files)) {
                     formData.append('imgCollection', files[key])
                 }
-                let url = ""
+                let url = ''
                 try {
-                     url = await getUrl()
-                }catch (e) {
+                    url = await getUrl()
+                } catch (e) {
                     sendToStateMachine('FAILED')
-                    return;
+                    return
                 }
                 const onUploadProgress = (progressLineValue: number) => {
                     setProgressLineValue(progressLineValue)
@@ -32,7 +32,7 @@ export const Uploader = () => {
                 // @ts-ignore
                 uploadPromise.current = response
                 try {
-                  const dataFromResponse = await response.promise
+                    const dataFromResponse = await response.promise
                     await markComplete(dataFromResponse.data.id)
                     sendToStateMachine('SUCCESS')
                 } catch (error) {
@@ -40,10 +40,10 @@ export const Uploader = () => {
                         sendToStateMachine('FAILED')
                         setProgressLineValue(0)
                     }
-
                 }
-            }
-        }
+                uploadPromise.current = null
+            },
+        },
     })
     const isResetDisabled =
         machineState.value === 'IDLE' || machineState.value === 'UPLOADING'
@@ -54,10 +54,8 @@ export const Uploader = () => {
 
     const onCancel = () => {
         uploadPromise.current?.abort()
-        // @ts-ignore
         uploadPromise.current = null
         setProgressLineValue(0)
-
         sendToStateMachine('CANCELED')
     }
 
@@ -68,19 +66,22 @@ export const Uploader = () => {
     }
 
     const onRetry = () => {
-        sendToStateMachine("UPLOADING")
+        sendToStateMachine('UPLOADING')
     }
-    console.log(machineState.value);
     return (
         <div className="upload-area-wrapper">
-            <form onSubmit={(e) => {e.preventDefault()}}>
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault()
+                }}
+            >
                 <input
                     style={{ display: 'none' }}
                     id="file"
                     type="file"
-                    disabled={machineState.value !== "IDLE"}
+                    disabled={machineState.value !== 'IDLE'}
                     ref={fileInput}
-                    onChange={() => sendToStateMachine("UPLOADING")}
+                    onChange={() => sendToStateMachine('UPLOADING')}
                     value={fileInput.file}
                     multiple
                     onClick={(e: any) => (e.target.value = null)}
@@ -91,7 +92,11 @@ export const Uploader = () => {
                         className="btn"
                         tabIndex={0}
                         role="button"
-                        title={machineState.value !== "IDLE" ? "You can reset and Upload again" : ""}
+                        title={
+                            machineState.value !== 'IDLE'
+                                ? 'You can reset and Upload again'
+                                : ''
+                        }
                         aria-controls="filename"
                     >
                         Upload file(s)

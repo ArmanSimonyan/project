@@ -2,7 +2,7 @@ export const getUrl = (): Promise<string> => {
     return new Promise((resolve, reject) =>
         setTimeout(() => {
             const yourChance = Math.random()
-             yourChance < 0.5 ? reject() : resolve('https://awesome.com/upload')
+            yourChance < 0.5 ? reject() : resolve('https://awesome.com/upload')
         }, 1000)
     )
 }
@@ -24,7 +24,7 @@ export interface IPromiseResponse {
 export const uploadFile = (
     url: string,
     data: any,
-    onUploadProgress: (number: number) => void,
+    onUploadProgress: (number: number) => void
 ): IPromiseResponse => {
     console.log(url, data)
     const controller = new AbortController()
@@ -39,20 +39,18 @@ export const uploadFile = (
     }, 300)
     return {
         promise: new Promise((resolve, reject) => {
-            const uploadRequest = setTimeout(
-                () => {
-                    const yourChance = Math.random()
-                    yourChance < 0.5 ? reject() : resolve({
-                        data: { id: 'UUID' },
-                        status: 200,
-                        statusText: 'success',
-                        headers: {},
-                        config: {},
-                    })
-                }
-                    ,
-                3100
-            )
+            const uploadRequest = setTimeout(() => {
+                const yourChance = Math.random()
+                yourChance < 0.5
+                    ? reject()
+                    : resolve({
+                          data: { id: 'UUID' },
+                          status: 200,
+                          statusText: 'success',
+                          headers: {},
+                          config: {},
+                      })
+            }, 3100)
             controller.signal.addEventListener('abort', () => {
                 clearTimeout(uploadRequest)
                 clearInterval(progressInterval)
