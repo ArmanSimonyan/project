@@ -1,44 +1,59 @@
-import { createMachine, assign } from 'xstate'
-import { useMachine } from '@xstate/react'
+import { createMachine } from 'xstate'
 
-const states = {
-    IDLE: 'IDLE',
-    FAILD: 'FAILD',
-    ERROR: 'ERROR',
-    UPLOADING: 'UPLOADING',
-    SUCCESS: 'SUCCESS',
+
+interface IContext {
+}
+interface IStates {
+
+    states: {
+        IDLE: {},
+        UPLOADING: {},
+        SUCCESS: {},
+        FAILED: {},
+        CANCELED: {},
+    }
+}
+interface IMachineEvents {
+
 }
 
-const { IDLE, FAILD, ERROR, UPLOADING, SUCCESS } = states
-
-interface ToggleContext {
-    file: React.ReactNode
-}
-
-const FileUploadMachine = createMachine<ToggleContext>({
+const FileUploadMachine = createMachine({
     id: 'file',
     initial: 'IDLE',
+    context: {
+
+    },
     states: {
         IDLE: {
             on: { UPLOADING: 'UPLOADING' },
         },
         UPLOADING: {
+            entry: "uploadFiles",
             on: {
                 SUCCESS: 'SUCCESS',
-                CANCALED: 'CANCALED',
-                FAILD: 'FAILD',
+                CANCELED: 'CANCELED',
+                FAILED: 'FAILED',
             },
         },
         SUCCESS: {
+            on: { IDLE: 'IDLE'},
+        },
+        FAILED: {
             on: {
                 IDLE: 'IDLE',
+                UPLOADING: "UPLOADING"
             },
         },
-        FAILD: {
-            on: { IDLE: 'IDLE' },
+        CANCELED: {
+            on: {
+                IDLE: 'IDLE',
+                UPLOADING: "UPLOADING"
+            }
         },
-        CANCALED: { on: { IDLE: 'IDLE' } },
+
     },
-})
+
+}, )
+
 
 export default FileUploadMachine

@@ -2,74 +2,85 @@ import React, { useState, useRef } from 'react'
 import { useMachine } from '@xstate/react'
 import ProgressBar from '../ProgressBar/Progress'
 import FileUploadMachine from '../Machines/UploadMachine'
-import { getUrl, uploadFile } from '../../api'
+import { getUrl, uploadFile, IPromiseResponse, markComplete } from '../../api'
 
 import './style.scss'
 
-interface ToggleContext {
-    count: number
-}
-
-// idle
-// uploading
-// success
-// failed
-// canceled
-
 export const Uploader = () => {
-    const [progresLineValue, setProgressLineValue] = useState(0)
-    const [current, send] = useMachine(FileUploadMachine)
     const fileInput: any = useRef(null)
-    const isResetDisabled =
-        current.value === 'IDLE' || current.value === 'UPLOADING'
-    const isProgressBarShowen =
-        current.value === 'UPLOADING' || current.value === 'SUCCESS'
-    const onUploadProgress = (progress: number) => {
-        setProgressLineValue(progress)
-    }
-    const onChange = async () => {
-        const formData = new FormData()
-        const files = fileInput.current?.files
-        for (const key of Object.keys(files)) {
-            formData.append('imgCollection', files[key])
-        }
-        const url = await getUrl()
-        const response = uploadFile(url, formData, onUploadProgress, send)
-        try {
-            if (current.value === 'CANCALED') {
-                setTimeout(() => {
-                    response.abort()
-                    formData.append('imgCollection', '')
-                }, 1500)
+    const uploadPromise= useRef<IPromiseResponse>(null)
+    const [progressLineValue, setProgressLineValue] = useState(0)
+    const [machineState, sendToStateMachine] = useMachine(FileUploadMachine, {
+        actions: {
+            uploadFiles: async () => {
+                const formData = new FormData()
+                const files = fileInput.current?.files
+                for (const key of Object.keys(files)) {
+                    formData.append('imgCollection', files[key])
+                }
+                let url = ""
+                try {
+                     url = await getUrl()
+                }catch (e) {
+                    sendToStateMachine('FAILED')
+                    return;
+                }
+                const onUploadProgress = (progressLineValue: number) => {
+                    setProgressLineValue(progressLineValue)
+                }
+                const response = uploadFile(url, formData, onUploadProgress)
+                // @ts-ignore
+                uploadPromise.current = response
+                try {
+                  const dataFromResponse = await response.promise
+                    await markComplete(dataFromResponse.data.id)
+                    sendToStateMachine('SUCCESS')
+                } catch (error) {
+                    if (uploadPromise.current) {
+                        sendToStateMachine('FAILED')
+                        setProgressLineValue(0)
+                    }
+
+                }
             }
-
-            await response.promise
-            send('SUCCESS')
-        } catch (error) {
-            console.log(error)
         }
-    }
+    })
+    const isResetDisabled =
+        machineState.value === 'IDLE' || machineState.value === 'UPLOADING'
+    const isRetryDisabled =
+        machineState.value !== 'CANCELED' && machineState.value !== 'FAILED'
+    const isProgressBarShown =
+        machineState.value === 'UPLOADING' || machineState.value === 'SUCCESS'
 
-    const onCancale = () => {
-        send('CANCALED')
+    const onCancel = () => {
+        uploadPromise.current?.abort()
+        // @ts-ignore
+        uploadPromise.current = null
+        setProgressLineValue(0)
+
+        sendToStateMachine('CANCELED')
     }
 
     const onReset = () => {
-        console.log('CANCALED')
         fileInput.current.value = null
-        send('IDLE')
+        sendToStateMachine('IDLE')
         setProgressLineValue(0)
     }
 
+    const onRetry = () => {
+        sendToStateMachine("UPLOADING")
+    }
+    console.log(machineState.value);
     return (
         <div className="upload-area-wrapper">
-            <form onSubmit={() => {}}>
+            <form onSubmit={(e) => {e.preventDefault()}}>
                 <input
                     style={{ display: 'none' }}
                     id="file"
                     type="file"
+                    disabled={machineState.value !== "IDLE"}
                     ref={fileInput}
-                    onChange={onChange}
+                    onChange={() => sendToStateMachine("UPLOADING")}
                     value={fileInput.file}
                     multiple
                     onClick={(e: any) => (e.target.value = null)}
@@ -80,28 +91,39 @@ export const Uploader = () => {
                         className="btn"
                         tabIndex={0}
                         role="button"
+                        title={machineState.value !== "IDLE" ? "You can reset and Upload again" : ""}
                         aria-controls="filename"
                     >
-                        Upload file(s):
+                        Upload file(s)
                     </span>
                 </label>
                 <div className="state">
                     <button
                         type="button"
                         onClick={onReset}
-                        disabled={!!isResetDisabled}
+                        disabled={isResetDisabled}
                         className={`reset-btn ${
                             isResetDisabled ? 'disabled' : ''
                         } `}
                     >
                         Reset
                     </button>
-                    <p>state:{current.value}</p>
+                    <button
+                        type="button"
+                        onClick={onRetry}
+                        disabled={isResetDisabled}
+                        className={`reset-btn ${
+                            isRetryDisabled ? 'disabled' : ''
+                        } `}
+                    >
+                        Retry
+                    </button>
+                    <p>state:{machineState.value}</p>
                 </div>
-                {isProgressBarShowen && (
+                {isProgressBarShown && (
                     <ProgressBar
-                        onCancale={onCancale}
-                        completed={progresLineValue}
+                        onCancel={onCancel}
+                        completed={progressLineValue}
                     />
                 )}
             </form>

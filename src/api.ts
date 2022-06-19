@@ -1,18 +1,15 @@
 export const getUrl = (): Promise<string> => {
-    return new Promise((resolve) =>
-        setTimeout(() => resolve('https://awesome.com/upload'), 1000)
+    return new Promise((resolve, reject) =>
+        setTimeout(() => {
+            const yourChance = Math.random()
+             yourChance < 0.5 ? reject() : resolve('https://awesome.com/upload')
+        }, 1000)
     )
 }
 export const markComplete = (id: string): Promise<{ id: string }> => {
     return new Promise((resolve) => setTimeout(() => resolve({ id }), 1000))
 }
-
-export const uploadFile = (
-    url: string,
-    data: any,
-    onUploadProgress: (number: number) => void,
-    send: (current: string) => void
-): {
+export interface IPromiseResponse {
     promise: Promise<{
         data: { id: string }
         status: number
@@ -22,8 +19,14 @@ export const uploadFile = (
         request?: any
     }>
     abort: () => void
-} => {
-    console.log(url, data, send)
+}
+
+export const uploadFile = (
+    url: string,
+    data: any,
+    onUploadProgress: (number: number) => void,
+): IPromiseResponse => {
+    console.log(url, data)
     const controller = new AbortController()
 
     let progress = 0
@@ -34,18 +37,20 @@ export const uploadFile = (
             clearInterval(progressInterval)
         }
     }, 300)
-    send('UPLOADING')
     return {
         promise: new Promise((resolve, reject) => {
             const uploadRequest = setTimeout(
-                () =>
-                    resolve({
+                () => {
+                    const yourChance = Math.random()
+                    yourChance < 0.5 ? reject() : resolve({
                         data: { id: 'UUID' },
                         status: 200,
                         statusText: 'success',
                         headers: {},
                         config: {},
-                    }),
+                    })
+                }
+                    ,
                 3100
             )
             controller.signal.addEventListener('abort', () => {

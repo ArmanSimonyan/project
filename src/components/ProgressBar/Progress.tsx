@@ -4,10 +4,10 @@ import './style.scss'
 
 interface IProgressBar {
     completed: number
-    onCancale: () => void
+    onCancel: () => void
 }
 
-const ProgressBar: React.FC<IProgressBar> = ({ completed, onCancale }) => {
+const ProgressBar: React.FC<IProgressBar> = ({ completed, onCancel }) => {
     return (
         <div className="progressBar-area">
             <div
@@ -19,7 +19,7 @@ const ProgressBar: React.FC<IProgressBar> = ({ completed, onCancale }) => {
                     <button
                         className="delete-btn"
                         type="button"
-                        onClick={() => onCancale()}
+                        onClick={() => onCancel()}
                     >
                         X
                     </button>
